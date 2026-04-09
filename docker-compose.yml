@@ -1,0 +1,53 @@
+services:
+  app:
+    image: faradaysec/faraday:latest
+    container_name: faraday
+    restart: unless-stopped
+    ports:
+      - "${PORT:-5985}:5985"
+    command: faraday-server
+    environment:
+      - POSTGRES_HOST=${{POSTGRES_HOST}}
+      - POSTGRES_PORT=${{POSTGRES_PORT}}
+      - POSTGRES_DB=${{POSTGRES_DB}}
+      - POSTGRES_USER=${{POSTGRES_USER}}
+      - POSTGRES_PASSWORD=${{POSTGRES_PASSWORD}}
+      - PGSSLMODE=${{PGSSLMODE}}
+      - CELERY_BROKER_URL=${{CELERY_BROKER_URL}}
+      - CELERY_BACKEND_URL=${{CELERY_BACKEND_URL}}
+      - FARADAY_DISABLE_CHANGE_PASSWORD=${{FARADAY_DISABLE_CHANGE_PASSWORD}}
+    volumes:
+      - app_data:/data
+    networks:
+      - internal
+
+  postgres:
+    image: postgres:15
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: faraday
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_DB: faraday
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    networks:
+      - internal
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U faraday"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  redis:
+    image: redis:7-alpine
+    restart: unless-stopped
+    networks:
+      - internal
+
+volumes:
+  postgres_data:
+volumes:
+  app_data:
+
+networks:
+  internal:
